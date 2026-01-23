@@ -2,17 +2,14 @@
 
 We assume that [ROS 2](https://docs.ros.org/) and [Webots](https://cyberbotics.com/) are installed in the system. 
 
-For the steps below we use ROS2 Humble and Webots R2023b.
+For the steps below we use [ROS 2 Humble](https://docs.ros.org/en/humble/index.html) and [Webots R2025a](https://github.com/cyberbotics/webots/releases/tag/R2025a).
 
-1.a. Install the prerequisites
+We assume that Webots has been installed from [the tar.bz2 archive](https://github.com/cyberbotics/webots/releases/download/R2025a/webots-R2025a-x86-64.tar.bz2) in the folder `$HOME/webots-R2025a`. Should it be installed differently, please update the environment variable `WEBOTS_HOME` in the below instructions.
+
+1. Install the prerequisites
 ```
+sudo apt update
 sudo apt install ros-humble-webots-ros2-turtlebot
-```
-1.b. Fix [this issue](https://github.com/cyberbotics/webots_ros2/issues/1015)
-```
-wget -O /tmp/hotfix.deb  http://snapshots.ros.org/humble/2024-08-28/ubuntu/pool/main/r/ros-humble-hardware-interface/ros-humble-hardware-interface_2.43.0-1jammy.20240823.145349_amd64.deb  && \
-sudo apt install -y --allow-downgrades /tmp/hotfix.deb && \
-rm -f /tmp/hotfix.deb
 ```
 2. Create a ROS 2 workspace
 ```
@@ -42,7 +39,7 @@ ros2 run person_follower person_follower
 
 In a room with walls:
 ```
-export WEBOTS_HOME=~/webots-R2023b
+export WEBOTS_HOME=~/webots-R2025a
 source /opt/ros/humble/setup.bash
 export ROS_LOCALHOST_ONLY=1
 ros2 launch webots_ros2_turtlebot robot_launch.py \
@@ -51,7 +48,7 @@ ros2 launch webots_ros2_turtlebot robot_launch.py \
 
 Or a room without walls:
 ```
-export WEBOTS_HOME=~/webots-R2023b
+export WEBOTS_HOME=~/webots-R2025a
 source /opt/ros/humble/setup.bash
 export ROS_LOCALHOST_ONLY=1
 ros2 launch webots_ros2_turtlebot robot_launch.py \
