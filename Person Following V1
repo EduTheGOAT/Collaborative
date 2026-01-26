@@ -38,16 +38,19 @@ class PersonFollower(Node):
         #
         # your code for computing vx, wz
         #
-        ranges_real = [r for r in ranges if r < float('inf')]
-        if len(ranges_real) > 0:
-            min_range = min(ranges_real)
-            index_min = ranges.index(min_range)
+        valid_points = [(i, r) for i, r in enumerate(ranges) if r < float('inf')]
+
+        if len(valid_points) > 0:
+            closest_point = min(valid_points)
+            index_min, min_range = closest_point
             angle_target = angle_min + (index_min * angle_increment)
-            print(f"Persona detectada a {min_range:.2f}m en {angle_target:.2f} rad")
             
-            vx = 0.2 * min_range
-            wz = 0.4 * angle_target
-            
+            print(f"Objetivo: {min_range:.2f}m | Ángulo: {angle_target:.2f} rad | Índice: {index_min}")
+            wz = 0.5 * angle_target 
+
+            error_distancia = min_range - 0.4
+            vx = 0.2 * error_distancia 
+
         else:
             vx = 0.0
             wz = 0.0
