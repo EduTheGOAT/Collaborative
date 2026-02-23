@@ -48,7 +48,7 @@ class PersonFollower(Node):
             raw_angle = angle_min + i * angle_increment
             current_angle = self.normalize_angle(raw_angle)
 
-            if r < float('inf') and not math.isnan(r) and -0.5 < current_angle < 0.5:
+            if r < float('inf') and -0.5 < current_angle < 0.5 and r<2:
                 valid_points.append((r, current_angle))
 
         vx = 0.0
@@ -56,18 +56,15 @@ class PersonFollower(Node):
 
         if len(valid_points) > 0:
             min_range, angle_target = min(valid_points, key=lambda x: x[0])
-            target_dist = 0.15
-            k_angular = 1.5 
+            target_dist = 0.4
+            k_angular = 2.5 
             
             print(f"Objetivo a: {min_range:.2f}m | Ángulo: {angle_target:.2f} rad")
 
             wz = k_angular * angle_target 
             
-            vx = 0.3 * (min_range - target_dist)
+            vx = 0.6 * (min_range - target_dist)
             
-
-            if vx > 0.3: vx = 0.3
-            if vx < -0.1: vx = -0.1 # Retrocede despacio
 
         else:
             # Si no ve nada, paramos por seguridad
