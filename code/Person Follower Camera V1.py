@@ -20,6 +20,7 @@ import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
+from aruco_opencv_msgs.msg import ArucoDetection
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 
@@ -42,6 +43,13 @@ class PersonFollower(Node):
             '/image_raw',
             self.image_callback,
             10)
+
+        self.sub = self.create_subscription(ArucoDetection, 
+            'aruco_detections',
+            self.aruco_pose_callback,
+            10)
+
+
     def normalize_angle(self, angle):
         while angle > math.pi:
             angle -= 2.0 * math.pi
@@ -96,6 +104,14 @@ class PersonFollower(Node):
             
         except Exception as e:
             self.get_logger().error(f"Error al leer la imagen: {e}")
+
+    
+    def aruco_pose_callback(self,msg):
+        for marker in msg.markers:
+            self.get_logger().info(f" Detected Marker ID : { marker.marker_id }")
+            z_distance = marker.pose.position.z
+            self.get_logger().info(
+            f"Distancia Z: {z_distance:.3f} m")
 
 def main(args=None):
     rclpy.init(args=args)
