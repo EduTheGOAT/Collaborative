@@ -52,7 +52,7 @@ class DistanceMeasurer(Node):
             self.depth_callback,
             qos_profile=qos_policy)
 
-        self.get_logger().info("Nodo de medicion con media de profundidades de keypoints iniciado")
+        self.get_logger().info("Nodo de medición (ID más bajo) iniciado")
 
         if self.show_image:
             cv2.namedWindow("Distancia persona (Astra)", cv2.WINDOW_NORMAL)
@@ -89,19 +89,22 @@ class DistanceMeasurer(Node):
         inference_time = time.time() - start_time
         self.get_logger().debug(f"Inferencia en {inference_time:.3f}s")
 
-        distancia_media = float('inf')
-        keypoints_xy = []   # para dibujar
+        # Lista para almacenar info de cada persona: (id, distancia, keypoints_xy)
+        personas = []
 
         if results[0].keypoints is not None and len(results[0].keypoints) > 0:
-            kpts = results[0].keypoints.xy[0].cpu().numpy()        # (N, 2)
-            kpts_conf = results[0].keypoints.conf[0].cpu().numpy() # (N,)
+            # results[0].keypoints es un tensor con shape (N_personas, N_keypoints, 2/3)
+            for person_id, (kpts, kpts_conf) in enumerate(zip(results[0].keypoints.xy,
+                                                             results[0].keypoints.conf)):
+                kpts = kpts.cpu().numpy()        # (N_kpts, 2)
+                kpts_conf = kpts_conf.cpu().numpy()  # (N_kpts,)
 
-            # Filtrar puntos con confianza > 0.5
-            conf_mask = kpts_conf > 0.5
-            if np.any(conf_mask):
-                valid_kpts = kpts[conf_mask]   # coordenadas (x, y) en imagen
+                conf_mask = kpts_conf > 0.5
+                if not np.any(conf_mask):
+                    continue   # ninguna articulación fiable
 
-                # Redimensionar profundidad al tamaño de trabajo
+                valid_kpts = kpts[conf_mask]
+                # Redimensionar profundidad (si no se ha hecho ya para esta frame)
                 depth_resized = cv2.resize(self.latest_depth_img,
                                            (self.img_width, self.img_height),
                                            interpolation=cv2.INTER_NEAREST)
@@ -112,35 +115,42 @@ class DistanceMeasurer(Node):
                 for (x, y) in valid_kpts:
                     xi = int(round(x))
                     yi = int(round(y))
-                    # Asegurar que está dentro de la imagen
                     if 0 <= xi < self.img_width and 0 <= yi < self.img_height:
                         d = depth_resized[yi, xi]
-                        if d > 0:   # solo píxeles válidos
+                        if d > 0:
                             profundidades.append(d)
                             puntos_visibles.append((xi, yi))
 
                 if len(profundidades) > 0:
-                    # Media de las profundidades (en mm) -> metros
                     distancia_media = np.mean(profundidades) / 1000.0
-                    self.get_logger().info(f"Distancia media de {len(profundidades)} keypoints: {distancia_media:.2f} m")
-                    keypoints_xy = puntos_visibles
-                else:
-                    self.get_logger().warn("Ningún keypoint válido tiene profundidad > 0")
-            else:
-                self.get_logger().warn("Ningún keypoint con confianza suficiente")
-        else:
-            self.get_logger().debug("No se detectó persona con pose")
+                    personas.append({
+                        'id': person_id,
+                        'distancia': distancia_media,
+                        'keypoints': puntos_visibles
+                    })
 
-        # Dibujo
+        # Seleccionar solo la persona con el ID más bajo
+        persona_seleccionada = None
+        if personas:
+            persona_seleccionada = personas[0]   # ya está ordenado por ID (0,1,2...)
+
+        # Dibujar todas las poses y resaltar la seleccionada
         frame_draw = results[0].plot() if results[0].keypoints is not None else cv_image
 
-        # Pintar los puntos usados y la distancia
-        if keypoints_xy and distancia_media < 10.0:
-            for (x, y) in keypoints_xy:
-                cv2.circle(frame_draw, (x, y), 4, (0, 255, 255), -1)  # amarillo
-            # Mostrar la media en un lugar visible (esquina superior izq)
-            cv2.putText(frame_draw, f"Dist. media: {distancia_media:.2f}m",
-                        (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+        if persona_seleccionada is not None:
+            dist = persona_seleccionada['distancia']
+            kps = persona_seleccionada['keypoints']
+            pid = persona_seleccionada['id']
+
+            self.get_logger().info(f"[ID:{pid}] Distancia media: {dist:.2f} m")
+
+            # Resaltar keypoints de esta persona (amarillo)
+            for (x, y) in kps:
+                cv2.circle(frame_draw, (x, y), 5, (0, 255, 255), -1)
+
+            # Texto con ID y distancia en la esquina superior izquierda
+            cv2.putText(frame_draw, f"ID {pid}: {dist:.2f}m",
+                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
 
         if self.show_image:
             cv2.imshow("Distancia persona (Astra)", frame_draw)
