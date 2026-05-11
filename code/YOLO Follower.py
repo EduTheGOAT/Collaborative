@@ -28,7 +28,7 @@ class DistanceMeasurer(Node):
 
         # Parámetros de control
         self.target_distance = 0.8
-        self.k_linear = 0.3
+        self.k_linear = 0.4
         self.k_angular = 2.5
         self.camera_hfov = 1.047
 
@@ -71,7 +71,7 @@ class DistanceMeasurer(Node):
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
 
         # Temporizador para el control (10 Hz)
-        self.control_timer = self.create_timer(0.15, self.control_callback)
+        self.control_timer = self.create_timer(0.1, self.control_callback)
 
         self.get_logger().info("Nodo de medición con control por timer iniciado (sin locks)")
 
@@ -231,7 +231,7 @@ class DistanceMeasurer(Node):
         wz = -self.k_angular * error_angular
 
         # Límites de seguridad
-        vx = max(min(vx, 0.3), -0.2)
+        vx = max(min(vx, 0.4), -0.2)
         wz = max(min(wz, 2.5), -2.5)
 
         self.publicar_velocidad(vx, wz)
