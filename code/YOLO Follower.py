@@ -16,8 +16,8 @@ class DistanceMeasurer(Node):
         super().__init__('distance_measurer')
         self.bridge = CvBridge()
         self.latest_depth_img = None
-        self.depth_ready = False          # <-- nueva bandera
-        self.color_ready = False          # <-- nueva bandera
+        self.depth_ready = False
+        self.color_ready = False
 
         # Configuración de rendimiento
         self.frame_count = 0
@@ -87,11 +87,11 @@ class DistanceMeasurer(Node):
             depth_img = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
             if depth_img is not None:
                 self.latest_depth_img = depth_img.copy()
-                self.depth_ready = True          # ya tenemos profundidad
+                self.depth_ready = True
         except Exception as e:
             self.get_logger().error(f"Error en profundidad: {e}")
         elapsed_ms = (time.time() - start_time) * 1000.0
-        if self.frame_count % 30 == 0:           # log cada 30 frames
+        if self.frame_count % 30 == 0: 
             self.get_logger().info(f"[TIMING] depth_callback tardó {elapsed_ms:.2f} ms")
 
     def color_callback(self, msg):
@@ -106,7 +106,7 @@ class DistanceMeasurer(Node):
         if cv_image is None or self.latest_depth_img is None:
             # No hay datos suficientes, deshabilitar control
             self.has_target = False
-            self.color_ready = True   # al menos sabemos que no hay persona
+            self.color_ready = True
             return
 
         cv_image = cv2.resize(cv_image, (self.img_width, self.img_height))
@@ -124,7 +124,6 @@ class DistanceMeasurer(Node):
         personas = []
 
         if len(keypoints_data) > 0:
-            # Redimensionar profundidad una sola vez
             depth_resized = cv2.resize(self.latest_depth_img,
                                        (self.img_width, self.img_height),
                                        interpolation=cv2.INTER_NEAREST)
@@ -170,7 +169,6 @@ class DistanceMeasurer(Node):
             personas.sort(key=lambda p: p['distancia'])
             selected = personas[0]
 
-        # Actualizar variables de estado
         if selected is not None:
             self.has_target = True
             self.target_id = selected['id']
@@ -179,9 +177,8 @@ class DistanceMeasurer(Node):
         else:
             self.has_target = False
 
-        self.color_ready = True   # ya tenemos un estado actualizado
+        self.color_ready = True 
 
-        # --- Dibujo (opcional) ---
         frame_draw = results[0].plot() if results[0].keypoints is not None else cv_image
         if selected is not None:
             dist = selected['distancia']
@@ -206,11 +203,9 @@ class DistanceMeasurer(Node):
         if self.frame_count % 30 == 0:
             self.get_logger().info(f"[TIMING] color_callback tardó {elapsed_ms:.1f} ms")
 
-    # ------------------------------------------------------------------
-    # Callback del temporizador (control)
-    # ------------------------------------------------------------------
+
+    
     def control_callback(self):
-        # Esperar a que ambos sensores hayan entregado al menos un dato
         if not (self.depth_ready and self.color_ready):
             self.publicar_velocidad(0.0, 0.0)
             return
@@ -235,9 +230,6 @@ class DistanceMeasurer(Node):
         wz = max(min(wz, 2.5), -2.5)
 
         self.publicar_velocidad(vx, wz)
-
-        # Log opcional (cada 50 ciclos)
-        
         self.get_logger().debug(f"Control: dist={dist:.2f} err_d={error_distancia:.2f} ang_err={error_angular:.2f} -> vx={vx:.2f} wz={wz:.2f}")
 
     def publicar_velocidad(self, vx, wz):
